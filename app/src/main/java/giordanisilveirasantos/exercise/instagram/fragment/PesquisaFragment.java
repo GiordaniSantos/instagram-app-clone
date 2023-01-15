@@ -2,13 +2,28 @@ package giordanisilveirasantos.exercise.instagram.fragment;
 
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.widget.SearchView;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.RecyclerView;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.Query;
+import com.google.firebase.database.ValueEventListener;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import giordanisilveirasantos.exercise.instagram.R;
+import giordanisilveirasantos.exercise.instagram.helper.ConfiguracaoFirebase;
+import giordanisilveirasantos.exercise.instagram.model.Usuario;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -16,6 +31,12 @@ import giordanisilveirasantos.exercise.instagram.R;
  * create an instance of this fragment.
  */
 public class PesquisaFragment extends Fragment {
+
+    private SearchView searchViewPesquisa;
+    private RecyclerView recyclerPesquisa;
+
+    private List<Usuario> listaUsuarios;
+    private DatabaseReference usuariosRef;
 
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -61,6 +82,56 @@ public class PesquisaFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_pesquisa, container, false);
+        View view = inflater.inflate(R.layout.fragment_pesquisa, container, false);
+
+        searchViewPesquisa = view.findViewById(R.id.searchViewPesquisa);
+        recyclerPesquisa = view.findViewById(R.id.recyclerPesquisa);
+
+        //Configurações iniciais
+        listaUsuarios = new ArrayList<>();
+        usuariosRef = ConfiguracaoFirebase.getFirebase().child("usuarios");
+
+        //configura o searchView
+        searchViewPesquisa.setQueryHint("Buscar usuários");
+        searchViewPesquisa.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                String textoDigitado = newText.toUpperCase();
+                pesquisarUsuarios(textoDigitado);
+                return true;
+            }
+        });
+
+        return view;
+    }
+
+    private void pesquisarUsuarios(String texto){
+        //limpar lista
+        listaUsuarios.clear();
+        //Pesquisa usuarios caso tenha texto na pesquisa
+        if(texto.length() > 0){
+            Query query = usuariosRef.orderByChild("nome").startAt(texto).endAt(texto + "\uf8ff");
+            query.addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot snapshot) {
+                    for(DataSnapshot ds : snapshot.getChildren()){
+                        listaUsuarios.add(ds.getValue(Usuario.class));
+                    }
+                    int total = listaUsuarios.size();
+                    Log.i("totalUsuarios", "total "+total);
+                }
+
+                @Override
+                public void onCancelled(@NonNull DatabaseError error) {
+
+                }
+            });
+
+        }
     }
 }
