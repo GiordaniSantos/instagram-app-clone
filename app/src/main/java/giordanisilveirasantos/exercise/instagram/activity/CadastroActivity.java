@@ -21,6 +21,7 @@ import com.google.firebase.auth.FirebaseAuthWeakPasswordException;
 
 import giordanisilveirasantos.exercise.instagram.R;
 import giordanisilveirasantos.exercise.instagram.helper.ConfiguracaoFirebase;
+import giordanisilveirasantos.exercise.instagram.helper.UsuarioFirebase;
 import giordanisilveirasantos.exercise.instagram.model.Usuario;
 
 public class CadastroActivity extends AppCompatActivity {
@@ -83,10 +84,25 @@ public class CadastroActivity extends AppCompatActivity {
             @Override
             public void onComplete(@NonNull Task<AuthResult> task) {
                 if(task.isSuccessful()){
-                    progressBar.setVisibility(View.GONE);
-                    Toast.makeText(CadastroActivity.this, "Cadastrado com sucesso!", Toast.LENGTH_SHORT).show();
-                    startActivity(new Intent(getApplicationContext(), MainActivity.class));
-                    finish();
+
+                    try{
+                        progressBar.setVisibility(View.GONE);
+
+                        //salvar dados no Firebase
+                        String idUsuario = task.getResult().getUser().getUid();
+                        usuario.setId(idUsuario);
+                        usuario.salvar();
+
+                        //salvar dados no profile do firebase
+                        UsuarioFirebase.atualizarNomeUsuario(usuario.getNome());
+
+                        Toast.makeText(CadastroActivity.this, "Cadastrado com sucesso!", Toast.LENGTH_SHORT).show();
+                        startActivity(new Intent(getApplicationContext(), MainActivity.class));
+                        finish();
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
+
                 }else{
                     progressBar.setVisibility(View.GONE);
                     String erroExcecao = "";
