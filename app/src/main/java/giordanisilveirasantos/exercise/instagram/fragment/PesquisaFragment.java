@@ -1,16 +1,19 @@
 package giordanisilveirasantos.exercise.instagram.fragment;
 
+import android.content.Intent;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.widget.SearchView;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -22,7 +25,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import giordanisilveirasantos.exercise.instagram.R;
+import giordanisilveirasantos.exercise.instagram.activity.PerfilAmigoActivity;
+import giordanisilveirasantos.exercise.instagram.adapter.AdapterPesquisa;
 import giordanisilveirasantos.exercise.instagram.helper.ConfiguracaoFirebase;
+import giordanisilveirasantos.exercise.instagram.helper.RecyclerItemClickListener;
 import giordanisilveirasantos.exercise.instagram.model.Usuario;
 
 /**
@@ -37,6 +43,7 @@ public class PesquisaFragment extends Fragment {
 
     private List<Usuario> listaUsuarios;
     private DatabaseReference usuariosRef;
+    private AdapterPesquisa adapterPesquisa;
 
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -91,6 +98,36 @@ public class PesquisaFragment extends Fragment {
         listaUsuarios = new ArrayList<>();
         usuariosRef = ConfiguracaoFirebase.getFirebase().child("usuarios");
 
+        //configura recyclerView
+        recyclerPesquisa.setHasFixedSize(true);
+        recyclerPesquisa.setLayoutManager(new LinearLayoutManager(getActivity()));
+
+        adapterPesquisa = new AdapterPesquisa(listaUsuarios, getActivity());
+        recyclerPesquisa.setAdapter(adapterPesquisa);
+
+        //configura evento de clique
+        recyclerPesquisa.addOnItemTouchListener(new RecyclerItemClickListener(
+                getActivity(), recyclerPesquisa, new RecyclerItemClickListener.OnItemClickListener() {
+            @Override
+            public void onItemClick(View view, int position) {
+                Usuario usuarioSelecionado = listaUsuarios.get(position);
+                Intent i = new Intent(getActivity(), PerfilAmigoActivity.class);
+                i.putExtra("usuarioSelecionado", usuarioSelecionado);
+                startActivity(i);
+            }
+
+            @Override
+            public void onLongItemClick(View view, int position) {
+
+            }
+
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+
+            }
+        }
+        ));
+
         //configura o searchView
         searchViewPesquisa.setQueryHint("Buscar usuários");
         searchViewPesquisa.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
@@ -114,16 +151,22 @@ public class PesquisaFragment extends Fragment {
         //limpar lista
         listaUsuarios.clear();
         //Pesquisa usuarios caso tenha texto na pesquisa
-        if(texto.length() > 0){
+        if(texto.length() >= 2){
             Query query = usuariosRef.orderByChild("nome").startAt(texto).endAt(texto + "\uf8ff");
             query.addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot snapshot) {
+                    //limpa lista
+                    listaUsuarios.clear();
+
                     for(DataSnapshot ds : snapshot.getChildren()){
                         listaUsuarios.add(ds.getValue(Usuario.class));
                     }
+
+                    adapterPesquisa.notifyDataSetChanged();
+                    /*
                     int total = listaUsuarios.size();
-                    Log.i("totalUsuarios", "total "+total);
+                    Log.i("totalUsuarios", "total "+total);*/
                 }
 
                 @Override
